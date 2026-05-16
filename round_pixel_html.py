@@ -10,10 +10,26 @@
 # Optional:
 #   python round_pixel_html.py input.jpg output.html --width 90 --dot 6
 
-from PIL import Image, ImageEnhance
 import argparse
 import json
 import os
+import sys
+
+
+def check_dependencies(verbose=True):
+    """
+    Returns True when Pillow is available, otherwise False.
+    """
+
+    try:
+        from PIL import Image, ImageEnhance  # noqa: F401
+    except ModuleNotFoundError:
+        if verbose:
+            print("Missing dependency: Pillow (PIL).")
+            print("Install with: python -m pip install pillow")
+        return False
+
+    return True
 
 
 def image_to_color_grid(
@@ -26,6 +42,8 @@ def image_to_color_grid(
     Opens an image, resizes it to a small sampling grid,
     and returns width, height, and RGB color values.
     """
+
+    from PIL import Image, ImageEnhance
 
     img = Image.open(image_path).convert("RGB")
 
@@ -245,8 +263,14 @@ def main():
         description="Convert an image into a small standalone HTML round-pixel mosaic."
     )
 
-    parser.add_argument("input", help="Input image path, e.g. photo.jpg")
-    parser.add_argument("output", help="Output HTML path, e.g. output.html")
+    parser.add_argument("input", nargs="?", help="Input image path, e.g. photo.jpg")
+    parser.add_argument("output", nargs="?", help="Output HTML path, e.g. output.html")
+
+    parser.add_argument(
+        "--check-deps",
+        action="store_true",
+        help="Check whether required dependencies are installed and exit.",
+    )
 
     parser.add_argument(
         "--width",
@@ -284,6 +308,15 @@ def main():
     )
 
     args = parser.parse_args()
+
+    if args.check_deps:
+        sys.exit(0 if check_dependencies() else 1)
+
+    if not args.input or not args.output:
+        parser.error("the following arguments are required: input, output")
+
+    if not check_dependencies():
+        sys.exit(1)
 
     convert_image_to_round_pixel_html(
         input_path=args.input,
